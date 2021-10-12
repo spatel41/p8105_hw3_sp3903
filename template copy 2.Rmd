@@ -6,19 +6,21 @@ output:
     highlight: haddock
 ---
 
-I'm an R Markdown document! 
-
-# Section 1
-
-Here's a **code chunk** that samples from 
-a _normal distribution_:
-
+# Problem 1
 ```{r}
-samp = rnorm(100)
-length(samp)
+library(p8105.datasets)
+data("instacart")
 ```
 
-# Section 2
+### Instacart Dataset Descriptions
 
-I can take the mean of the sample, too!
-The mean is `r mean(samp)`.
+* The Instacart dataset includes `r length(instacart)` variables: `r variable.names(instacart)`.
+* The dataset has `r nrow(instacart)` rows and `r ncol(instacart)` columns.
+* The range of days since the prior order is (`r range(instacart$days_since_prior_order)`).
+* The median number of items added to cart order is (`r median(instacart$add_to_cart_order)`).
+* The total number of times an item was reordered is `r sum(instacart$reordered)`.
+
+# Problem 2
+
+# Problem 3
+
