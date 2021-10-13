@@ -1,7 +1,9 @@
 ---
 title: "Homework 2"
 output:
-  html_document
+  html_document:
+    theme: yeti
+    highlight: haddock
 ---
 
 ### Loading Libraries
@@ -53,27 +55,95 @@ instacart %>%
 ```
 * There are 134 different aisles. 
 
-Instructions
-* Make a plot that shows the number of items ordered in each aisle, Arrange aisles sensibly, and organize your plot so others can read it.
+### Creating a plot 
 ```{r}
 instacart %>% 
   count(aisle) %>% 
-  arrange(desc(n)) %>% 
-  filter(n > 10000) %>% 
+  filter(n > 10000) %>%
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, n)) %>% 
   ggplot(aes(x = n, y = aisle)) +
-  geom_point(aes(color = aisle)) +
+  geom_point() +
   labs(
-    title = "Number of Items Orders by Aisle")
+    title = "Number of Items Orders by Aisle",
     x = "Number of Items Sold",
     y = "Item"
   )
-
 ```
-The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packages vegetables fruits. 
+* The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packages vegetables fruits. 
 
+### Instacart: Cleaning and filter
+```{r}
+popular_items = instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  mutate(rank = min_rank(desc(n))) %>% 
+  filter(rank < 4)
+```
 
+### Instacart: Table
+```{r}
+knitr::kable(head(popular_items[, 1:4]), "simple")
+```
+
+### Icecream: Cleaning and filtering
+```{r}
+applies_icecream = instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(
+    names_from = order_dow,
+    values_from = mean_hour
+  )
+```
+
+### Icecream: Table
+```{r}
+knitr::kable(head(applies_icecream[, 1:8]), "simple")
+```
 
 # Problem 2
+```{r}
+library(p8105.datasets)
+data("brfss_smart2010")
+```
+
+### Cleaning Data
+
+Instructions: 
+- format the data to use appropriate variable names --> clean variable names 
+- focus on the “Overall Health” topic --> filter for the overall health 
+- include only responses from “Excellent” to “Poor”????
+- organize responses as a factor taking levels ordered from “Poor” to “Excellent”
+
+```{r}
+brfss_smart2010 = brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health") %>% 
+  mutate(response = str_to_lower(response),
+        response = factor(response))
+```
+
+Instructions
+* In 2002, which states were observed at 7 or more locations?
+      What about in 2010?
+- filter for 2002
+- group state
+- count locations 
+- find > 7 locations 
+
+* Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+- filter for "Excellent" 
+- select(year, state, )
+
+* Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
+
+
+* Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 
 # Problem 3
 
