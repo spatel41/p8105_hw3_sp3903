@@ -173,12 +173,17 @@ accel = read_csv(file = "data/accel_data.csv")
 ### Accelerometer Dataset Cleaning 
 
 ```{r}
-accel = accel %>% 
+clean_accel = accel %>% 
   janitor::clean_names() %>% 
   mutate(week_day = ifelse(day %in% c("Saturday", "Sunday"), "weekday", "weekend")) %>% 
-  select(week_day, everything())
+  select(week_day, everything()) %>% 
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "activity_day",
+    values_to = "activity_counts")
 ```
-
+ 
+    
 ### Accelerometer Dataset Description
 
 * The Accelerometer dataset includes variables week_day, week, day_id, day, and activity.
@@ -186,4 +191,15 @@ accel = accel %>%
 * The range of activity on day 1 is (`r range(accel$activity_1)`).
 * The total amount of activity on day 1 is `r sum(accel$activity_1)`.
 
+### Aggregating Accelerometer Dataset 
+
+```{r}
+clean_accel = clean_accel %>%
+  group_by(day_id) %>% 
+  summarize(sum_activity = sum(activity_counts)) 
+```
+
+```{r}
+knitr::kable(head(clean_accel[, 1:2]), "simple")
+```
 
