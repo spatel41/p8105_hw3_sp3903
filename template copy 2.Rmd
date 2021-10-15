@@ -147,22 +147,34 @@ excellent = brfss_smart2010 %>%
   mutate(average_data_value = mean(data_value)) %>% 
   select(year, average_data_value, locationdesc, locationabbr) %>% 
   ggplot(aes(x = year, y = average_data_value, color = locationabbr)) +
-  geom_point() + geom_line(aes(group = locationabbr))
+  geom_point() + geom_line(aes(group = locationabbr)) +
+    labs(
+    title = "Data Values over Time in each State",
+    x = "Year",
+    y = "Average Data Value"
+  )
 
 excellent
 ```
 
 ### Distribution Plot
+
 ```{r}
 plot_data = brfss_smart2010 %>% 
   filter(locationabbr == "NY") %>% 
   filter(year == c(2006,2010)) %>% 
   ggplot(aes(x = response, y = data_value, color = response)) + 
   geom_boxplot() + 
-  facet_grid(. ~ year)
+  facet_grid(. ~ year) + 
+  labs(
+    title = "Distribution of Data Values for Responses in New York",
+    x = "Overall Health Response",
+    y = "Data Values"
+  )
 
 plot_data
 ```
+*What does the data vlaue represent? 
 
 # Problem 3
 
@@ -183,7 +195,6 @@ clean_accel = accel %>%
     values_to = "activity_counts")
 ```
  
-    
 ### Accelerometer Dataset Description
 
 * The Accelerometer dataset includes variables week_day, week, day_id, day, and activity.
@@ -199,7 +210,24 @@ clean_accel = clean_accel %>%
   summarize(sum_activity = sum(activity_counts)) 
 ```
 
+### Table of Activity Counter per Day
 ```{r}
-knitr::kable(head(clean_accel[, 1:2]), "simple")
+knitr::kable(head(clean_accel))
 ```
+* Not sure what the pattern is. 
+
+### Plot of 24-hour activity time 
+
+Instructions
+* Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+```{r}
+ggplot(clean_accel, aes(x = day_id, y = activity_counts, color = day)) +
+  geom_point(alpha = 0.3) +
+  labs(
+    title = "Activity Counts per Day",
+    x = "Day ID",
+    y = "Activity Count"
+  )
+```
+
 
