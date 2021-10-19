@@ -1,5 +1,5 @@
 ---
-title: "Homework 2"
+title: "Homework 3"
 output:
   html_document:
     theme: yeti
@@ -13,11 +13,9 @@ library(tidyverse)
 
 ### Formatting plots
 ```{r}
-library(tidyverse)
-
 knitr::opts_chunk$set(
-  fig.width = 22,
-  fig.asp = .8,
+  fig.width = 15,
+  fig.asp = .6,
   out.width = "90%")
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
@@ -31,6 +29,7 @@ scale_fill_discrete = scale_fill_viridis_d
 ```
 
 # Problem 1
+
 ```{r}
 library(p8105.datasets)
 data("instacart")
@@ -48,9 +47,9 @@ data("instacart")
 
 ```{r}
 instacart %>% 
-  summarize(
-    distinct_aisles = n_distinct(aisle))  
+  summarize(distinct_aisles = n_distinct(aisle))  
 ```
+
 * There are 134 different aisles. 
 
 ### Creating a plot 
@@ -66,8 +65,9 @@ instacart %>%
   labs(
     title = "Number of Items Orders by Aisle",
     x = "Number of Items Sold",
-    y = "Item"
-  )
+    y = "Item") +
+  scale_x_continuous(
+    breaks = c(20000, 40000, 60000, 80000, 100000, 120000, 140000))
 ```
 * The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packages vegetables fruits. 
 
@@ -89,13 +89,22 @@ knitr::kable(head(popular_items[, 1:4]), "simple")
 ### Icecream: Cleaning and filtering
 ```{r}
 applies_icecream = instacart %>% 
-  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  mutate(
+    order_dow = recode(order_dow,
+                       "0" = "Sunday",
+                       "1" = "Monday",
+                       "2" = "Tuesday",
+                       "3" = "Wednesday",
+                       "4" = "Thursday",
+                       "5" = "Friday",
+                       "6" = "Saturday")) %>% 
   group_by(product_name, order_dow) %>% 
   summarize(mean_hour = mean(order_hour_of_day)) %>% 
   pivot_wider(
     names_from = order_dow,
     values_from = mean_hour
-  )
+  ) 
 ```
 
 ### Icecream: Table
@@ -114,10 +123,10 @@ data("brfss_smart2010")
 ```{r}
 brfss_smart2010 = brfss_smart2010 %>% 
   janitor::clean_names() %>% 
-  filter(topic == "Overall Health") %>% 
-  drop_na(response) %>%
+  filter(topic == "Overall Health",
+         response %in% c("Excellent", "Very Good", "Good", "Poor")) %>%
   mutate(response = str_to_lower(response),
-        response = factor(response))
+        response = factor(response, levels = c("excellent", "very good", "good", "poor")))
 ```
 
 ### 2002 states with 7 or more locations
@@ -140,6 +149,7 @@ states_2010 = brfss_smart2010 %>%
 
 
 ### String plot of excellent responses
+
 ```{r}
 excellent = brfss_smart2010 %>% 
   filter(response == "excellent") %>% 
@@ -151,11 +161,15 @@ excellent = brfss_smart2010 %>%
     labs(
     title = "Data Values over Time in each State",
     x = "Year",
-    y = "Average Data Value"
-  )
+    y = "Average Data Value",
+    colour = "States"
+  ) +
+  scale_x_continuous(
+    breaks = c(2002:2010)) 
 
 excellent
 ```
+
 
 ### Distribution Plot
 
@@ -174,7 +188,7 @@ plot_data = brfss_smart2010 %>%
 
 plot_data
 ```
-*What does the data vlaue represent? 
+
 
 # Problem 3
 
@@ -199,6 +213,7 @@ clean_accel = accel %>%
 
 * The Accelerometer dataset includes variables week_day, week, day_id, day, and activity.
 * The dataset has `r nrow(accel)` rows and `r ncol(accel)` columns.
+* The number of observations is `r count(accel)`
 * The range of activity on day 1 is (`r range(accel$activity_1)`).
 * The total amount of activity on day 1 is `r sum(accel$activity_1)`.
 
@@ -206,28 +221,31 @@ clean_accel = accel %>%
 
 ```{r}
 clean_accel = clean_accel %>%
-  group_by(day_id) %>% 
+  group_by(day_id, day) %>% 
   summarize(sum_activity = sum(activity_counts)) 
 ```
 
 ### Table of Activity Counter per Day
 ```{r}
-knitr::kable(head(clean_accel))
+knitr::kable(clean_accel)
 ```
-* Not sure what the pattern is. 
+
+* Acitvity counts generally are around 400,000. The lowest levels of activity occur on day 24 and 31. 
 
 ### Plot of 24-hour activity time 
 
-Instructions
-* Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 ```{r}
-ggplot(clean_accel, aes(x = day_id, y = activity_counts, color = day)) +
-  geom_point(alpha = 0.3) +
+ggplot(clean_accel, aes(x = day_id, y = sum_activity, color = day)) +
+  geom_point() +
   labs(
     title = "Activity Counts per Day",
     x = "Day ID",
-    y = "Activity Count"
-  )
+    y = "Activity Count",
+    colour = "Day of the Week" 
+  ) +
+  scale_x_continuous(
+    breaks = c(0:36))
 ```
 
-
+* While during the first half of the study period, the activity counts are high during weekends, the second half of the study period shows lower activity 
+counts on the weekend. The counts per day typically stay around 400,000.

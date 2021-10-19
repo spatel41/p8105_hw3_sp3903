@@ -1,0 +1,242 @@
+---
+title: "Homework 3"
+output:
+  html_document:
+    theme: yeti
+    highlight: haddock
+---
+
+### Loading Libraries
+```{r}
+library(tidyverse)
+```
+
+### Formatting plots
+```{r}
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%")
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.colour = "viridis")
+
+sclae_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# Problem 1
+
+```{r}
+library(p8105.datasets)
+data("instacart")
+```
+
+### Instacart Dataset Descriptions
+
+* The Instacart dataset includes `r length(instacart)` variables: `r variable.names(instacart)`.
+* The dataset has `r nrow(instacart)` rows and `r ncol(instacart)` columns.
+* The range of days since the prior order is (`r range(instacart$days_since_prior_order)`).
+* The median number of items added to cart order is (`r median(instacart$add_to_cart_order)`).
+* The total number of times an item was reordered is `r sum(instacart$reordered)`.
+
+### Aisles: Count and Most Ordered
+
+```{r}
+instacart %>% 
+  summarize(distinct_aisles = n_distinct(aisle))  
+```
+* There are 134 different aisles. 
+
+### Creating a plot 
+```{r}
+instacart %>% 
+  count(aisle) %>% 
+  filter(n > 10000) %>%
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, n)) %>% 
+  ggplot(aes(x = n, y = aisle)) +
+  geom_point() +
+  labs(
+    title = "Number of Items Orders by Aisle",
+    x = "Number of Items Sold",
+    y = "Item")
+```
+* The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packages vegetables fruits. 
+
+### Instacart: Cleaning and filter
+```{r}
+popular_items = instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  mutate(rank = min_rank(desc(n))) %>% 
+  filter(rank < 4)
+```
+
+### Instacart: Table
+```{r}
+knitr::kable(head(popular_items[, 1:4]), "simple")
+```
+
+### Icecream: Cleaning and filtering
+```{r}
+applies_icecream = instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  mutate(
+    order_dow = recode(order_dow,
+                       "0" = "Sunday",
+                       "1" = "Monday",
+                       "2" = "Tuesday",
+                       "3" = "Wednesday",
+                       "4" = "Thursday",
+                       "5" = "Friday",
+                       "6" = "Saturday")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(
+    names_from = order_dow,
+    values_from = mean_hour
+  ) 
+```
+
+### Icecream: Table
+```{r}
+knitr::kable(head(applies_icecream[, 1:8]), "simple")
+```
+
+# Problem 2
+```{r}
+library(p8105.datasets)
+data("brfss_smart2010")
+```
+
+### Cleaning Data
+
+```{r}
+brfss_smart2010 = brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health",
+         response %in% c("Excellent", "Very Good", "Good", "Poor")) %>%
+  mutate(response = str_to_lower(response),
+        response = factor(response, levels = c("excellent", "very good", "good", "poor")))
+```
+
+### 2002 states with 7 or more locations
+
+```{r}
+states_2002 = brfss_smart2010 %>% 
+  filter(year == 2002) %>%
+  count(locationabbr) %>% 
+  filter(n >= 7)
+```
+
+### 2010 states with 7 or more locations
+
+```{r}
+states_2010 = brfss_smart2010 %>% 
+  filter(year == 2010) %>%
+  count(locationabbr) %>% 
+  filter(n >= 7)
+```
+
+
+### String plot of excellent responses
+
+```{r}
+excellent = brfss_smart2010 %>% 
+  filter(response == "excellent") %>% 
+  group_by(locationdesc) %>% 
+  mutate(average_data_value = mean(data_value)) %>% 
+  select(year, average_data_value, locationdesc, locationabbr) %>% 
+  ggplot(aes(x = year, y = average_data_value, color = locationabbr)) +
+  geom_point() + geom_line(aes(group = locationabbr)) +
+    labs(
+    title = "Data Values over Time in each State",
+    x = "Year",
+    y = "Average Data Value",
+    colour = "States"
+  )
+
+excellent
+```
+
+### Distribution Plot
+
+```{r}
+plot_data = brfss_smart2010 %>% 
+  filter(locationabbr == "NY") %>% 
+  filter(year == c(2006,2010)) %>% 
+  ggplot(aes(x = response, y = data_value, color = response)) + 
+  geom_boxplot() + 
+  facet_grid(. ~ year) + 
+  labs(
+    title = "Distribution of Data Values for Responses in New York",
+    x = "Overall Health Response",
+    y = "Data Values"
+  )
+
+plot_data
+```
+
+
+# Problem 3
+
+```{r}
+accel = read_csv(file = "data/accel_data.csv")
+```
+
+### Accelerometer Dataset Cleaning 
+*encode data with reasonable variable classes;
+```{r}
+clean_accel = accel %>% 
+  janitor::clean_names() %>% 
+  mutate(week_day = ifelse(day %in% c("Saturday", "Sunday"), "weekday", "weekend")) %>% 
+  select(week_day, everything()) %>% 
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "activity_day",
+    values_to = "activity_counts")
+```
+ 
+### Accelerometer Dataset Description
+
+* The Accelerometer dataset includes variables week_day, week, day_id, day, and activity.
+* The dataset has `r nrow(accel)` rows and `r ncol(accel)` columns.
+* The range of activity on day 1 is (`r range(accel$activity_1)`).
+* The total amount of activity on day 1 is `r sum(accel$activity_1)`.
+
+### Aggregating Accelerometer Dataset 
+
+```{r}
+clean_accel = clean_accel %>%
+  group_by(day_id, day) %>% 
+  summarize(sum_activity = sum(activity_counts)) 
+```
+
+### Table of Activity Counter per Day
+```{r}
+knitr::kable(clean_accel)
+```
+* Acitvity counts generally are around 400,000. 
+
+### Plot of 24-hour activity time 
+
+Instructions
+* Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+```{r}
+ggplot(clean_accel, aes(x = day_id, y = sum_activity, color = day)) +
+  geom_point() +
+  labs(
+    title = "Activity Counts per Day",
+    x = "Day ID",
+    y = "Activity Count",
+    colour = "Day of the Week" 
+  ) +
+  scale_x_continuous(
+    breaks = c(0:36))
+```
