@@ -39,6 +39,7 @@ data("instacart")
 
 * The Instacart dataset includes `r length(instacart)` variables: `r variable.names(instacart)`.
 * The dataset has `r nrow(instacart)` rows and `r ncol(instacart)` columns.
+* The number of observations is `r count(instacart)`.
 * The range of days since the prior order is (`r range(instacart$days_since_prior_order)`).
 * The median number of items added to cart order is (`r median(instacart$add_to_cart_order)`).
 * The total number of times an item was reordered is `r sum(instacart$reordered)`.
@@ -69,7 +70,7 @@ instacart %>%
   scale_x_continuous(
     breaks = c(20000, 40000, 60000, 80000, 100000, 120000, 140000))
 ```
-* The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packages vegetables fruits. 
+* The aisles where the most items are ordered from are 83 for fresh vegetables, 24 for fresh fruits, and 123 for packaged vegetables fruits. 
 
 ### Instacart: Cleaning and filter
 ```{r}
@@ -121,43 +122,48 @@ data("brfss_smart2010")
 ### Cleaning Data
 
 ```{r}
-brfss_smart2010 = brfss_smart2010 %>% 
+brfss_smart20102 = brfss_smart2010 %>% 
   janitor::clean_names() %>% 
-  filter(topic == "Overall Health",
-         response %in% c("Excellent", "Very Good", "Good", "Poor")) %>%
   mutate(response = str_to_lower(response),
-        response = factor(response, levels = c("excellent", "very good", "good", "poor")))
+         response = recode(response,
+                            "very good" = "very_good")) %>% 
+  filter(topic == "Overall Health",
+         response %in% c("excellent", "very_good", "good", "poor")) %>%
+  mutate(response = factor(response, levels = c("excellent", "very_good", "good", "poor")))
 ```
-
+                       
 ### 2002 states with 7 or more locations
 
 ```{r}
-states_2002 = brfss_smart2010 %>% 
+states_2002 = brfss_smart20102 %>% 
   filter(year == 2002) %>%
   count(locationabbr) %>% 
   filter(n >= 7)
 ```
 
+* The following states observed 7 or more locations in 2002: `r (states_2002$locationabbr)`.
+
 ### 2010 states with 7 or more locations
 
 ```{r}
-states_2010 = brfss_smart2010 %>% 
+states_2010 = brfss_smart20102 %>% 
   filter(year == 2010) %>%
   count(locationabbr) %>% 
   filter(n >= 7)
 ```
 
+* The following states observed 7 or more locations in 2010: `r (states_2010$locationabbr)`.
 
 ### String plot of excellent responses
 
 ```{r}
-excellent = brfss_smart2010 %>% 
+excellent = brfss_smart20102 %>% 
   filter(response == "excellent") %>% 
-  group_by(locationdesc) %>% 
+  group_by(locationabbr, year) %>% 
   mutate(average_data_value = mean(data_value)) %>% 
-  select(year, average_data_value, locationdesc, locationabbr) %>% 
-  ggplot(aes(x = year, y = average_data_value, color = locationabbr)) +
-  geom_point() + geom_line(aes(group = locationabbr)) +
+  select(year, average_data_value, locationabbr) %>% 
+  ggplot(aes(x = year, y = average_data_value, group = locationabbr, color = locationabbr)) +
+  geom_line(alpha = .6) +
     labs(
     title = "Data Values over Time in each State",
     x = "Year",
@@ -170,11 +176,13 @@ excellent = brfss_smart2010 %>%
 excellent
 ```
 
+* The plot shows that the average data values tends to decrease over time for most states. The average data
+values are typically around 22.5. 
 
 ### Distribution Plot
 
 ```{r}
-plot_data = brfss_smart2010 %>% 
+plot_data = brfss_smart20102 %>% 
   filter(locationabbr == "NY") %>% 
   filter(year == c(2006,2010)) %>% 
   ggplot(aes(x = response, y = data_value, color = response)) + 
@@ -189,6 +197,7 @@ plot_data = brfss_smart2010 %>%
 plot_data
 ```
 
+* The data values for for excellent, very good, and good are much higher than the data values for poor. 
 
 # Problem 3
 
@@ -213,29 +222,28 @@ clean_accel = accel %>%
 
 * The Accelerometer dataset includes variables week_day, week, day_id, day, and activity.
 * The dataset has `r nrow(accel)` rows and `r ncol(accel)` columns.
-* The number of observations is `r count(accel)`
-* The range of activity on day 1 is (`r range(accel$activity_1)`).
-* The total amount of activity on day 1 is `r sum(accel$activity_1)`.
+* The number of observations is `r count(accel)`.
+* The mean amount of activity over the study period is `r mean(clean_accel$activity_counts)`.
 
 ### Aggregating Accelerometer Dataset 
 
 ```{r}
-clean_accel = clean_accel %>%
+clean_accel2 = clean_accel %>%
   group_by(day_id, day) %>% 
   summarize(sum_activity = sum(activity_counts)) 
 ```
 
 ### Table of Activity Counter per Day
 ```{r}
-knitr::kable(clean_accel)
+knitr::kable(clean_accel2)
 ```
 
-* Acitvity counts generally are around 400,000. The lowest levels of activity occur on day 24 and 31. 
+* While during the first half of the study period, the activity counts are high during weekends, the second half of the study period shows lower activity counts on the weekend. The counts per day typically stay around 400,000. The lowest levels of activity occur on day 24 and 31.  
 
 ### Plot of 24-hour activity time 
 
 ```{r}
-ggplot(clean_accel, aes(x = day_id, y = sum_activity, color = day)) +
+ggplot(clean_accel, aes(x = day_id, y = activity_counts, color = day)) +
   geom_point() +
   labs(
     title = "Activity Counts per Day",
@@ -247,5 +255,4 @@ ggplot(clean_accel, aes(x = day_id, y = sum_activity, color = day)) +
     breaks = c(0:36))
 ```
 
-* While during the first half of the study period, the activity counts are high during weekends, the second half of the study period shows lower activity 
-counts on the weekend. The counts per day typically stay around 400,000.
+* The person is more active in the morning than later in the day where activity tapers off. The person is often very active on Saterday's. 
